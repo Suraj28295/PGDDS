@@ -1,0 +1,208 @@
+---
+title: "Assignment_3"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r,warning=F,message=FALSE}
+library(readxl)
+library(dplyr)
+library(knitr)
+accident <- read_excel("Road Traffic Accident (Batch 3B).xlsx")
+accident <- data.frame(accident)
+str(accident)
+View(accident)
+
+```
+#1.	How many children (<= 18 years) have died in the accident and how many of them are males and females?	
+```{r,warning=F}
+
+died_of_accident <-  accident %>% filter(`Age..yrs.` <= 18) %>% group_by(Gender) %>% summarise(Total_accidents = n()) 
+  
+  died_of_accident <- rbind(died_of_accident,c("TOTAL",sum(died_of_accident$Total_accidents)))
+  
+  kable(died_of_accident)
+
+```
+
+#2.	How many children had taken alcohol? Were they riders or pillion when they died? 											
+```{r,warning=F}
+kable(accident %>% select(Age..yrs.,Alco.Drug.etc,Person.died) %>% filter(Age..yrs.<=18,Alco.Drug.etc=="Yes"))
+
+```
+
+#3.	How many children have died immediately in the accident as pillion riders who had consumed alcolhol? 											
+```{r,warning=F}
+
+kable(accident %>% filter(Age..yrs.<=18,Alco.Drug.etc=="Yes",Time.of.death=="Immediately") %>% group_by(Person.died) %>% summarise(Total_died=n()))
+
+```
+
+#4.	How many have died under the influence of alcohol/drug and without wearing helmet?											
+```{r,warning=F}
+
+no.helmet_alcohol<- accident %>% filter(Alco.Drug.etc=="Yes",Use.of.helmet=="No")
+
+kable(no.helmet_alcohol)
+
+paste("People died under the influence of alcohol/drug and without wearing helmet:",nrow(no.helmet_alcohol))
+```
+
+#5.	How many of them have died between the age group of 31 - 40 years inspite of wearing helmet?											
+```{r,warning=F}
+age_31_40 <- accident %>% filter(Age..yrs. %in% 31:40,Use.of.helmet=="Yes")
+
+paste("Number of people died between the age group of 31 - 40 years inspite of wearing helmet:",nrow(age_31_40))
+```
+
+#6.	What is the ratio of male and female who died on the spot?											
+```{r,warning=F}
+
+accident_spot_Gender <- accident %>% filter(Site.of.death=="Spot") %>%  group_by(Gender) %>% summarise(Total_died_on_spot=n()) %>% arrange(-Total_died_on_spot)
+
+kable(accident_spot_Gender)
+
+paste("Ratio between male and female who died on the spot ->",accident_spot_Gender$Total_died_on_spot[1],":",accident_spot_Gender$Total_died_on_spot[2])
+
+paste("OR",accident_spot_Gender$Total_died_on_spot[1]/accident_spot_Gender$Total_died_on_spot[2])
+
+```
+
+#7.	Whai is the medianal survival time  and IQR of RTA victims who died in the hospital?											
+
+```{r,warning=F}
+
+accident_died <- accident %>% filter(Site.of.death=="Hospital")
+accident_died$Time.of.death <- as.numeric(trimws(gsub("[a-z|A-Z]*","",accident_died$Time.of.death)))
+
+summ_died <- summary(accident_died$Time.of.death)
+
+paste("For RTA victims who died in the hospital ")
+paste("Median:",summ_died[3],"IQR:",summ_died[4]-summ_died[2])
+
+```
+
+#8.	How many of them have died in the hospital for whom wearing of helmet details not available? Do you think these people could have wore helmet at the time of accident?											
+
+```{r,warning=F}
+kable(accident %>% filter(Site.of.death == "Hospital" & Use.of.helmet!= "Yes" &  Use.of.helmet  != "No") %>% group_by( Time.of.death ) %>% summarise(Death_Count = n()))
+
+## Since the death of people without helmet was on spot, it is said that these passengers could have worn helmet during accident.
+
+
+```
+
+#9.	Whai is the medianal period of coma (hrs) and IQR of RTA victims who died in the hospital?											
+
+```{r,warning=F}
+accident_died <- accident %>% filter(Site.of.death=="Hospital")
+
+summ_died <- summary(accident_died$Period.of.coma.hrs)
+
+paste("For RTA victims who died in the hospital ")
+paste("Median:",summ_died[3],"IQR:",summ_died[4]-summ_died[2])
+
+```
+
+#10.	What is the ratio of students to bussinessmen who died in RTA under the influence of alcohol?											
+
+```{r,warning=F}
+
+student_bussinesman <- accident %>% filter(Occupation %in% c("Student","Bussinesman"),Alco.Drug.etc=="Yes") %>% group_by(Occupation) %>% summarise(Total_died=n())
+
+
+paste("Ratio between Student and Bussinesman who died on the spot ->",student_bussinesman$Total_died[2],":",student_bussinesman$Total_died[1])
+
+paste("OR",student_bussinesman$Total_died[2]/student_bussinesman$Total_died[1])
+  
+```
+
+#11.	State some of the hypothesis which may be formulated based on this data? 											
+
+HYPOTHESIS  POSSIBLE:
+
+###1. 
+###H0<- Alcohol Consumption and Time of Death do not have a significant effect on each other
+
+###H1<- Alcohol Consumption and Time of Death do not have a significant effect on each other
+
+###2.
+###H0<-Type of vehicle and Period of Death (Coma Period) do not have a Significant effect on each other
+
+###H1<-Type of vehicle and Period of Death (Coma Period) have a Significant effect on each other
+
+###3. 
+###H0<- Usage of Helment does not affect Time of Death 
+
+###H1<- Usage of Helmet affects Time of Death
+
+
+Testing Above Hypothesis
+
+
+#12.	Is there sufficient data to test these hypothesis? If so use the available and test those hypothesis. 											
+```{r,warning=FALSE}
+ch1<- chisq.test(accident$Time.of.death ,accident$Alco.Drug.etc)
+ch1
+
+## INTERPRETATION:
+#                  As the P value (0.3281) > P critical (0.05) Null Hypothesis is accepted and it is concluded that the consumption of Alcohol during Road Accident does affect the TIme of Death.
+```
+
+```{r,warning=FALSE}
+ch2<- chisq.test(accident$Type.of.vehicle,accident$Time.of.death )
+ch2
+
+## INTERPRETATION:
+#                 As the P Value (0.6921) > P critical (0.05), Null Hypothesis is accepted and we can say thaat there is no significant relation in type of vehicle and time of death
+```
+
+```{r,warning=F}
+
+ch3<- chisq.test(accident$Use.of.helmet,accident$Time.of.death)
+ch3
+
+## INTERPRETATION:
+#                 As the P value (0.149) > P critical (0.05) Null Hypothesis is accepted and it is concluded that the Use of Helmet during Road Accident does affect the TIme of Death for the given sample.
+```
+
+
+#13.	Use appropriaate graphs to present the data											
+```{r,warning=F}
+library(ggplot2)
+
+#Converting all character columns into factor
+accident <- as.data.frame(lapply(accident, function(x){if(length(unique(x))<=12){return(as.factor(x))}else {return(x)}}))
+  
+
+plot_graph <- function(database)
+{
+  num_col <- sapply(database, is.numeric)
+  fac_col <- sapply(database,is.factor)
+  
+  for (i in names(database)[num_col]) {
+
+     boxplot(database[,i],names = i)
+     title(paste("boxplot for",i))
+
+  }
+  for (j in names(database)[fac_col]) {
+  slices <- table(database[,j])
+  lbls <- names(slices) 
+  Main <- paste("Pie Chart for",j)
+  pie(slices, labels = lbls, main=Main)
+  }
+  
+}
+plot_graph(accident)
+
+
+
+```
+
+
+

@@ -1,0 +1,195 @@
+---
+title: "Assingment_1"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Loading Libraries
+```{r,warning=FALSE}
+library(tidyverse)
+library(readxl)
+
+platelet <- read_excel("Dataset 2.xlsx")
+platelet<- as.data.frame(platelet)
+```
+
+#Change necessary columns to factor
+```{r,warning=FALSE}
+col_names <- names(platelet)
+for (i in col_names) {
+  if(length(unique(platelet[,i])) <= 4)
+  {
+    platelet[,i] <- as.factor(platelet[,i])
+  }
+}
+names(platelet)[2]<-"Study_Group"
+```
+
+#Binning
+```{r,warning=FALSE}
+#Binning Continuos Columns
+for (col in 3:ncol(platelet)) {
+  column = platelet[,col]
+ if(is.numeric(column))
+  {
+  range=(max(column,na.rm = T)-min(column,na.rm = T))/5
+    range=round(range)
+    min_val<-min(column,na.rm = T)-range
+    max_val=max(column,na.rm = T)
+    bin=seq(from=min_val,to=max_val,by=range)
+    temp <- cut(column,bin)
+    
+    platelet<-cbind(platelet,temp)
+    names(platelet)[match("temp",names(platelet))]<-paste0(names(platelet)[col],"_bins") 
+    }
+}
+
+```
+
+#Questions:-
+##Question 1	Construct frequency distribution of all variables according to Group 1 and Group 2
+
+```{r,warning=FALSE}
+freq_dist<- function(clm_to_dist)
+{
+  dataset <- platelet
+  m <<- m+1
+  freq_db <- data.frame(cat="a",group="b")
+  num_col<-ncol(dataset)
+  if(is.numeric(clm_to_dist))
+  {
+    
+    range=(max(clm_to_dist,na.rm = T)-min(clm_to_dist,na.rm = T))/5
+    range=round(range)
+    min_val<-min(clm_to_dist,na.rm = T)-range
+    max_val=max(clm_to_dist,na.rm = T)
+    bin=seq(from=min_val,to=max_val,by=range)
+    dataset[,num_col+1] <- cut(clm_to_dist,bin)
+
+     t= dataset %>% group_by(dataset[,(num_col+1)]) %>% summarise(Group_1=sum(Study_Group=="Group 1"),Group_2=sum(Study_Group=="Group 2"))
+    names(t)[1] =  names(dataset)[m-1]
+   
+    }
+  else if(is.factor(clm_to_dist))
+   {
+     fac_col<-names(dataset)[m-1]
+     t = dataset %>% group_by(dataset[,c(fac_col)]) %>% summarise(Group_1 = sum(Study_Group=="Group 1"),Group_2=sum(Study_Group=="Group 2"))
+      names(t)[1] <- fac_col
+     }
+  
+  return(t)
+}
+
+m=1
+a<-lapply(platelet,freq_dist)
+a
+View(platelet)
+
+```
+##Question 2	Represent the all the given variables below using appropriate graphical presentation
+###Numerical Column
+```{r,warning=FALSE}
+num = sapply(platelet, is.numeric)
+
+plot_graph_num = function(col){
+  new = data.frame(col = platelet[,col])
+  print(new %>% na.omit() %>% 
+            ggplot(aes(x=col)) + geom_histogram(fill = 'steelblue',bins = 10) + xlab(col))
+}
+
+sapply(names(platelet)[num], plot_graph_num)
+```
+###Categorical Column
+```{r,warning=FALSE}
+num = sapply(platelet, is.numeric)
+
+gen_plot = function(col){
+  new = data.frame(col = platelet[,col])
+  print(new %>% na.omit() %>% 
+            ggplot(aes(x=col)) + geom_bar(fill = 'steelblue') + xlab(col))
+}
+
+sapply(names(platelet)[!num], gen_plot)
+```
+
+##Question 3	Construct the cross tables of Age versus Sex, Culture 1 and Culture 2
+```{r,warning=FALSE}
+cross_tab <- function(versus=c("Sex","Culture 1","Culture 2"))
+{
+   cross_tab_list=list()
+  for (col in versus) {
+    cross_tab_list[[col]]=table(platelet[,"Age (yrs)_bins"],platelet[,col])
+  }
+  return(cross_tab_list)
+}
+
+
+cross_tab()
+```
+
+##Question 4	Compute the mean and standard deviation of data obtained in the age frequency distribution 
+```{r,warning=FALSE}
+freq_dist_age <- platelet %>% group_by(`Age (yrs)_bins`) %>% summarise(Total_occurence=n())
+mid_vector=c()
+for (row in 1:6) {
+  bined_age<-freq_dist_age$`Age (yrs)_bins`[row]
+ trimed_range<-gsub("\\(|\\]","",bined_age)
+ num_min_max<-as.numeric(unlist(strsplit(trimed_range,",")))
+ mid = (num_min_max[2]-num_min_max[1])/2
+ mid_vector <- append(mid_vector,(mid+num_min_max[1]))  
+}
+freq_dist_age<-cbind(freq_dist_age,mid_vector)
+
+freq_dist_age<-freq_dist_age %>% mutate(F.X=Total_occurence*mid_vector)
+mean_Age_Freq_Distribution<-sum(freq_dist_age$F.X)/sum(freq_dist_age$Total_occurence)
+
+SD_Age_Freq_Didtribution <- sqrt(sum(((freq_dist_age$mid_vector-mean_Age_Freq_Distribution)^2)*freq_dist_age$Total_occurence))/sqrt(sum(freq_dist_age$Total_occurence))
+
+mean_Age_Freq_Distribution
+
+SD_Age_Freq_Didtribution
+```
+##Question 5	Construct the cross tables between Culture 1 and Culture 2
+```{r}
+cross_tab<- platelet %>% group_by(`Culture 1`) %>% summarise(Culture2_Negative=sum(`Culture 2`=="Negative"),Culture2_positive=sum(`Culture 2`=="Positive"))
+cross_tab
+```
+
+##Question 6	Present the summary statistics of all quantitative variables
+```{r,warning=FALSE}
+num_col <- sapply(platelet, is.numeric)
+sum_list<- lapply(platelet[,num_col], function(x){if(is.numeric(x)){summary(x)}else{return()}})
+sum_list
+```
+
+##Question 7	Draw a scattered diagram between Systolic blood pressure and Diastolic blood pressure
+```{r,warning=FALSE}
+
+ggplot(platelet,aes(x=`Systolic blood presure`,y=`Diastolic blood presure`))+geom_point() +ggtitle("Systolic blood presure VS Diastolic blood presure")
+
+```
+##Question 8	Present all the quantitative data using box-and Whisker plot 
+
+```{r,warning=FALSE}
+num_col <- sapply(platelet, is.numeric)
+
+n=0
+plot1 <- function(col) {
+  n<<-n+1
+  if(is.numeric(col))
+  {
+    col_name <- names(platelet)[n]
+     ggplot(platelet,aes(x=col_name,y=col)) + geom_boxplot() +ggtitle(paste0(col_name," BOX AND WISKER PLOT"," "))
+  }
+}
+a<-sapply(platelet, plot1)
+b<-sapply(a, function(x){!is.null(x)})
+a[b]
+```
+
