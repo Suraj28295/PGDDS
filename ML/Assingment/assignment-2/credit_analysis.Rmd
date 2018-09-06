@@ -1,0 +1,212 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+setwd("E:/ML/Case study ML/Credit card better")
+library(dplyr)
+library(ggplot2)
+library(nnet)
+library(randomForest)
+library(rpart)
+library(e1071)
+library(caret)
+library(xgboost)
+library(fastAdaboost)
+library(knitr)
+```
+
+
+```{r warning=FALSE}
+
+credit <- read.csv("credit-default.csv")
+str(credit)
+
+
+creditm=cut(credit$age,breaks = c(17,27,42,80))
+
+credit$age_fac <- creditm
+unique(credit$age_fac)
+credit <- credit %>% select(-age)
+credit<- data.frame(lapply(credit, function(x){if(length(unique(x))<=10){factor(x,labels = unique(x))}else{x}}))
+credit_factor<- data.frame(lapply(credit[,names(credit)[sapply(credit, is.factor)]], function(x){
+  
+  vec <- unique(x)
+  names(vec) <- 1:length(unique(x))
+  y=c()
+  for(i in 1:length(x)) {
+    y=append(y,names(vec[vec==x[i]]))
+    
+  }
+  #y=factor(y,labels = vec)
+  return(y)
+  
+  }))
+
+
+credit_converted <- cbind(credit_factor,credit[,colnames(credit[,sapply(credit,is.numeric)])])
+
+
+kable(head(credit))
+```
+
+#Scaling Dataframe
+```{r}
+
+credit_converted_integer <- as.data.frame(lapply(credit_converted,as.numeric))
+credit_scaled <- as.data.frame(scale(credit_converted_integer,center= F,scale = T))
+credit_scaled_final<- as.data.frame(lapply(credit_scaled, function(x){if(length(unique(x))<=10){factor(x)}else{x}}))
+
+```
+
+
+
+#Chi Sq analysis for target VS Factor
+```{r warning=FALSE}
+
+chisq <- function(df)
+{
+  get_factors <- function(df)
+  {
+    v= sapply(df, is.factor)
+    return(names(df)[v])
+  }
+  df_factor <- get_factors(df)
+
+  comb_fact1 <- combn(df_factor,2,simplify = F)# Will give you list of all the combinations of length 2
+  ch_df <- list() 
+  #Automating Chi square for each factor variable combination
+  for (comb in comb_fact1) {
+    chi_res <- chisq.test(df[,comb[1]],df[,comb[2]])
+    if(chi_res$p.value<0.01)
+    {
+    ch_df <-c(ch_df,c(comb[1],comb[2],chi_res$p.value))
+    }
+  }
+  t_df <- data.frame(c1=unlist(ch_df[seq(1,length(ch_df),by=3)]),c2=unlist(ch_df[seq(2,length(ch_df),by=3)]),chi=unlist(ch_df[seq(3,length(ch_df),by=3)]),stringsAsFactors=F)
+  return(t_df)
+}
+
+
+chi_table<- chisq(credit_converted)
+
+highly_cor<- chi_table[chi_table$c2=="default"|chi_table$c1=="default",]
+cols_with_rel<- unique(union(unique(chi_table$c1),unique(chi_table$c1)))
+cols_with_cor <- unique(union(unique(highly_cor$c2),unique(highly_cor$c1)))
+
+cols_with_cor
+
+
+
+
+```
+
+
+#Anova for Target Vs. Numericals
+```{r warning=FALSE}
+
+Anova <- function(dataset,column)
+{
+num_col <- sapply(dataset, is.numeric)  
+num_col <- names(dataset)[num_col]
+temp <- c()
+j <- 1
+  for (num_c in num_col) {
+  
+  aov_t <- aov(dataset[,num_c]~dataset[,"default"])
+  summ <- summary(aov_t)
+  pr <- summ[[1]][1,'Pr(>F)']
+  if(pr <0.05)
+    {
+    temp<- append(temp,pr)
+    names(temp)[j] <- num_c
+    j=j+1
+    }
+  
+  }
+
+  return(names(temp))
+}
+relevant_num<- Anova(credit,'default')
+relevant_num
+```
+
+#Final formula of Selected Variables
+```{r warning=FALSE}
+formula_for_models<- as.formula(paste0("default~",paste(paste0(cols_with_cor[-1],collapse = "+"),paste0(relevant_num,collapse = "+"),sep="+")))
+formula_for_models
+```
+
+#Random Sample Generation
+```{r}
+credit_train <- sample_n(credit_scaled_final,0.8*nrow(credit_scaled_final))
+credit_test <- sample_n(credit_scaled_final,0.2*nrow(credit_scaled_final))
+```
+
+
+#Models Function 
+##The Function to generate Accuracy, Sensitivity, Specificity for Different Machine Learning Algorithms 
+```{r warning=FALSE}
+
+model_building_classification <- function(df_train,df_test,formula_for_model)
+{
+ random_model <-  randomForest(formula_for_model,data = df_train,ntree = 65)
+ predict_rf <- predict(random_model,df_test)
+ rf_selected<- confusionMatrix(predict_rf,df_test$default)
+ svm_model <- svm(formula_for_model,data = df_train,type = "C-")
+ predict_svm <- predict(svm_model,df_test)
+ svm_selected<- confusionMatrix(predict_svm,df_test$default)
+ navie_model <- naiveBayes(formula_for_model,data = df_train)
+ predict_navie <- predict(navie_model,df_test)
+ navie_selected <- confusionMatrix(predict_navie,df_test$default)
+ nural_model <- nnet(formula_for_model,data = df_train,size = 10,rang = 0.5)
+ predict_nural <- predict(nural_model,df_test,type="class")
+ nural_selected <- confusionMatrix(as.factor(predict_nural),df_test$default)
+ ada_model<- adaboost(formula = formula_for_model,data = df_train,nIter = 200)
+ ada_predict <- predict(ada_model,df_test)
+ ada_selected<- confusionMatrix(ada_predict$class,df_test$default)
+ knn_model<- knn3(formula_for_model,data=df_train)
+ knn_pred <- predict(knn_model,df_test)
+ knn_pred1<- ifelse(knn_pred[,1]>0.6,names(as.data.frame(knn_pred))[1],names(as.data.frame(knn_pred))[2])
+ knn_selected<- confusionMatrix(as.factor(knn_pred1),credit_test$default)
+
+ #reg_model <- glm(formula_for_models,data = df_train,na.action = T)
+ #predict_reg <- predict(reg_model,df_test)
+ 
+ 
+ #XGBOOST
+  xgboost_algo<- function(training_dataframe,testing_dataframe)
+  {
+      new_tr <- model.matrix(~.+0,data = training_dataframe%>% select(-default)) 
+      new_ts <- model.matrix(~.+0,data =testing_dataframe%>% select(-default))
+      training_dataframe$default <- as.double(as.character(training_dataframe$default))
+      testing_dataframe$default <- as.double(as.character(testing_dataframe$default))
+      xg_object_tr <- xgb.DMatrix(data=new_tr,label=ifelse(training_dataframe$default==min(training_dataframe$default),0,1)) 
+      xg_object_ts <- xgb.DMatrix(data = new_ts,label=ifelse(testing_dataframe$default==min(testing_dataframe$default),0,1))
+      params <- list(booster = "gbtree", objective = "binary:logistic", eta=0.3, gamma=0, max_depth=6, min_child_weight=1, subsample=1, colsample_bytree=1)
+      xgb1 <- xgb.train (params = params, data = xg_object_tr, nrounds = 79, watchlist = list(val=xg_object_ts,train=xg_object_tr), print.every.n = 10, early.stop.round = 10, maximize = F , eval_metric = "error")
+      #model prediction
+      xgbpred <- predict (xgb1,xg_object_ts)
+      acc_vec<- as.factor(ifelse(xgbpred<0.5, 0.725113421255055,1.45022684251011))
+      confusionMatrix(acc_vec,as.factor(testing_dataframe$default))
+       }
+        xgb_selected<- xgboost_algo(df_train,df_test)
+        df <- data.frame(Name=c("Random forest","SVM","Navie","Nural","XGBoost","AdaBoost","Knn"),Accuracy=c(rf_selected$overall['Accuracy'],svm_selected$overall['Accuracy'],navie_selected$overall['Accuracy'],nural_selected$overall['Accuracy'],xgb_selected$overall['Accuracy'],ada_selected$overall['Accuracy'],knn_selected$overall['Accuracy']),
+      Sensitivity=c(rf_selected$byClass['Sensitivity'],svm_selected$byClass['Sensitivity'],navie_selected$byClass['Sensitivity'],nural_selected$byClass['Sensitivity'],xgb_selected$byClass['Sensitivity'],ada_selected$byClass['Sensitivity'],knn_selected$byClass['Sensitivity']),
+      Specificity=c(rf_selected$byClass['Specificity'],svm_selected$byClass['Specificity'],navie_selected$byClass['Specificity'],nural_selected$byClass['Specificity'],xgb_selected$byClass['Specificity'],ada_selected$byClass['Specificity'],knn_selected$byClass['Specificity']))
+      # return(list(rf_acc=rf_selected,svm_acc=svm_selected,navie_acc=navie_selected,nural_acc=nural_selected,xgboost_acc=xgb_selected))  
+      return(df)
+ }
+
+prediction_with_selected_parameters<- model_building_classification(credit_train,credit_test,formula_for_models)
+prediction_with_all_parameters<- model_building_classification(credit_train,credit_test,as.formula("default~."))
+prediction_with_all_parameters
+prediction_with_selected_parameters
+
+
+```
+
+
+

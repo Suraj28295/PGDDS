@@ -1,0 +1,61 @@
+---
+title: "4th_day"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rattle)
+library(rpart)
+library(dplyr)
+```
+
+```{r}
+
+hr <- read.csv('HR Analytics.csv')
+
+model <- rpart(Attrition~Gender+OverTime,data=hr)
+fancyRpartPlot(model)
+
+```
+
+```{r}
+
+hr_overtime_yes <- hr %>% filter(OverTime=='Yes') 
+table(hr_overtime_yes$Attrition)
+
+factorial(5)
+
+data("airquality")
+
+write.csv(airquality,file = "airquality.csv") 
+getwd()
+```
+
+```{r}
+library(woe)
+woe(Data=mtcars,"disp",FALSE,"am",10,Bad=0,Good=1)
+mtcars
+
+
+```
+
+```{r}
+
+data(women)    
+
+model=lm(weight~(height),data=women)
+
+test_case<- women %>% filter(height==65)
+
+test_case$predicted <- predict(model,test_case)
+
+df <- data.frame(x=((test_case$predicted-test_case$weight)*100/test_case$weight))
+
+
+```
+
+```{r}
+
+```
+

@@ -1,0 +1,130 @@
+---
+title: "Banking_assignment"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+```
+
+#We are generating the  ratio for HCL Technologies
+__All the values are in Rs. Crores__
+(The balance sheet is attached with the assignment)
+
+
+
+```{r}
+balance_sheet <- read.csv("E:/Banking/HCL_Balance_Sheet.csv")
+profit_loss <- read.csv("E:/Banking/HCL_profitloss_statement.csv")
+hcl_index <- read.csv("E:/Banking/HCL index sheet.csv")
+knitr::kable(balance_sheet)
+knitr::kable(profit_loss)
+knitr::kable(head(hcl_index,n = 10))
+```
+
+#Current Raito
+```{r}
+curr_assets <- 12470.67	
+curr_liab <-   5845.22
+
+current_ratio <- function(current_asset,current_liablities)
+{
+  return(current_asset/current_liablities)
+}
+
+cat("Current Ratio is -> ",current_ratio(curr_assets,curr_liab),":",1)
+
+```
+
+#Quick Ratio
+```{r}
+curr_assets <- 12470.67	
+curr_liab <-   5845.22
+inventories_cost <- 89.93
+
+quick_ratio <- function(current_asset,inventories,current_liablities)
+{
+  return((current_asset-inventories)/current_liablities)
+}
+
+quick_ratio(curr_assets,inventories_cost,curr_liab)
+
+
+```
+
+#Debt-Equity Ratio
+```{r}
+# Debt/Equity Ratio = Total Liabilities / Shareholders Equity
+tot_liablities <- 26004.53	
+equity_share_capital <-   285.36
+
+debt_equity_ratio <- function(total_liablities,equity)
+{
+  return((total_liablities)/equity)
+}
+
+debt_equity_ratio(tot_liablities,equity_share_capital)
+
+```
+
+#Interest covarage Ratio
+```{r}
+ebit <- 8805.55
+interest <- 56.03
+
+interest_coverage_ratio <- function(EBIT,interest)
+{
+  return(EBIT/interest)
+}
+
+interest_coverage_ratio(ebit,interest)
+```
+
+#Net Profit Ratio
+```{r}
+net_sales <- 19318.31
+net_profit <- 6872.69
+net_profit_ratio <- function(net_sales,net_profit)
+{
+  return(net_profit/net_sales)
+}
+
+net_profit_ratio(net_sales,net_profit)
+
+```
+
+#Operting Profit Ratio
+```{r}
+operating_income <- 8805.55
+operating_profit_ratio <- function(net_sales,net_profit)
+{
+  return(operating_income/net_sales)
+}
+
+operating_profit_ratio(net_sales,operating_income)
+
+```
+
+#Returns on Investments
+```{r}
+investment_cost<- 26004.53
+retuns_on_investment_ratio <- function(ebit,interest,investment_cost)
+{
+  return(net_profit*100/net_sales)
+}
+
+cat("Returns on",retuns_on_investment_ratio(ebit,interest,investment_cost))
+
+```
+
+```{r}
+
+covarience = cov(hcl_index$Close,hcl_index$Market_close)
+varience = var(hcl_index$Market_close)
+
+beta = covarience/varience
+
+cat("Beta Value Of HCL as Comapre to BSE_index : ",beta)
+```
+

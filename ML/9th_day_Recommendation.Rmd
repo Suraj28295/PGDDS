@@ -1,0 +1,90 @@
+---
+title: "9th_day_Recommendation"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(arules)
+data('Groceries')
+
+Groceries
+```
+
+#Apripori 
+```{r}
+inspect(Groceries[1])
+
+apriori_algo <- apriori(data = Groceries,parameter = list(support=0.03,confidence=0.3))
+#support - 
+#Confidence - 
+
+df <- data.frame(inspect(apriori_algo))
+
+
+```
+```{r}
+
+apriori_algo1 <- apriori(data = Groceries,parameter = list(support=0.03,confidence=0.5))
+```
+#Example for recommendTION
+#Explanation in Book x
+```{r}
+
+x= list(c('a','b','c'),c('a','d'),c('e','a','c'),c('e','b'))
+x_trans <- as(x,'transactions')
+x_trans
+
+model_apr <- apriori(data=x,parameter = list(support=0,confidence=0))
+
+inspect(model_apr)
+
+inspect(sort(model_apr,by='lift'))
+
+
+```
+
+
+
+
+##UBCF And IBCF
+
+
+#1)UBCF
+```{r}
+install.packages("recommenderlab")
+library(recommenderlab)
+library(reshape2)
+movies <- read.csv("movies.csv")
+ratings <- read.csv("ratings.csv")
+
+rating_matrix=dcast(data=ratings,userId~movieId,value.var='rating')
+dim(rating_matrix)
+ranking_marix <- as(as.matrix(rating_matrix[,-1]),'realRatingMatrix')#Recommender accepts this kind of matrix and not normal matrix so we do this
+ubcf <- Recommender(ranking_marix,method='UBCF',param=list(method='Cosine',nn=10))
+
+recommendation<- predict(ubcf,ranking_marix[1,],n=10)
+
+movies[movies$movieId %in% unlist(recommendation@items),]
+    
+
+```
+
+
+#2)IBCF
+```{r}
+
+rating_matrix1=dcast(data=ratings,movieId~userId,value.var='rating')
+dim(rating_matrix)
+ranking_marix1 <- as(as.matrix(rating_matrix[,-1]),'realRatingMatrix')#Recommender accepts this kind of matrix and not normal matrix so we do this
+ibcf <- Recommender(ranking_marix,method='IBCF',param=list(method='Cosine',nn=10))
+
+recommendation1<- predict(ubcf,ranking_marix[1,],n=10)
+
+movies[movies$movieId %in% unlist(recommendation1@items),]
+
+```
+

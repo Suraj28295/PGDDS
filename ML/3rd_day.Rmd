@@ -1,0 +1,42 @@
+---
+title: "3rd_day"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("E:/ML")
+```
+
+#Gradient Descent
+```{r}
+
+x=rnorm(100)
+
+df <- data.frame(x=x,y=0.05*x)
+
+lm(y~x,data=df)
+```
+
+
+
+#Dicision trees
+
+```{r}
+
+
+ad <- read.csv("Advertising.csv")
+
+cut <- 100
+
+df <- data.frame(x=ad$TV,y=ad$sales)
+
+samples_left <- df %>% filter(x<cut)
+samples_right <- df %>% filter(x>cut)
+avg_left <- mean(samples_left$y)
+avg_right <- mean(samples_right$y)
+df$yhat <- ifelse(df$x<cut,avg_left,avg_right)
+mse <- sum(((df$y-df$yhat)^2)/nrow(df))
+
+```
+

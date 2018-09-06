@@ -1,0 +1,37 @@
+---
+title: "First class"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+library(dplyr)
+library(ggplot2)
+```
+
+```{r}
+
+odi <- read_excel("odi-batting-analysis.xlsx")
+```
+
+```{r}
+str(odi)
+View(odi)
+ground_grp <- odi %>% group_by(Ground) %>% summarise(tot_match =  length(unique(MatchDate))) %>% arrange(-tot_match) %>%   head(10)
+plot <-  ggplot(ground_grp,aes(x=reorder(Ground,-tot_match),y=tot_match,fill = Ground))+ geom_bar(stat = 'identity') + theme_bw() + theme(axis.text.x=element_text(angle = -45, hjust = 0))
+ # theme_bw <- remove grid
+ # theme - in theme you can change legend and axis text, align them , remove ticks , remove axis names
+ # to remove the axis text <-  in themes axis.text.x = element_blank()
+
+plot+geom_text(aes(label=tot_match),position = position_dodge(width = .7),vjust=-0.25)        
+        
+        
+```
+
+```{r}
+
+
+
+```
+

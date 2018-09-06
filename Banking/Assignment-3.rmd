@@ -1,0 +1,65 @@
+---
+title: "Finance Assignment 3"
+author: "Suraj Shiwal"
+date: "June 30, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# User Defined Function(UDF) for capital budgeting techniques like 
+
+# Pay back period without discounting
+```{r}
+
+PayBackPeriod = function(initial_investment,annual_cashflows){
+  Pay_back_period = initial_investment/annual_cashflows
+  return(Pay_back_period)
+}
+
+PayBackPeriod(80000,1000000)
+```
+
+# Payback period with discounting
+```{r}
+PBPD <- function(initial_capital,cashflow,discount_rate){
+  return(log(1/(1-((initial_capital*discount_rate)/cashflow)))/log(1+discount_rate))
+}
+
+discount_payback = PBPD(1674000,700000,0.11)
+cat("The Discounted Payback Period is:",discount_payback, "years")
+```
+
+
+#Net Present Value
+```{r}
+	NPV <- function(initial_capital,cf,n,int_rate){
+  npv = -initial_capital + sum(cf/((1+int_rate)^n)) 
+}
+
+n = 3
+cf = c(1000000,400000,800000)
+net_present_value = NPV(500000,cf,1:n,0.10)
+cat("Net Present Value is:",net_present_value,"Rs.")
+
+```
+
+#Internal Rate of Return.
+```{r}
+#Here,
+#A <- rate in percentage where NPV is positive
+#B <- rate in percentage where NPV is negative and closest to zero
+#C <- NPV for rate A
+#D <- NPV for rate B
+IRR = function(A,B,C,D){
+  irr = A+(C/(C-D))*(B-A)
+  return(irr)
+}
+IRR(35,45,1375,-133)
+
+```
+
+
+

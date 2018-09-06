@@ -1,0 +1,83 @@
+---
+title: "8th_day_clustering"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+```
+
+
+```{r}
+
+odi <- read.csv("odi-batting.csv")
+
+odi$century <- ifelse(odi$Runs>99,1,0)
+odi$ducks <- ifelse(odi$Runs==0,1,0)
+odi$above_150 <- ifelse(odi$Runs>150,1,0)
+odi$missed_centuries <- ifelse(odi$Runs>49&odi$Runs<100,1,0)
+odi$fifties = ifelse(odi$Runs>49&odi$Runs<100, 1,0)
+
+```
+
+```{r}
+library(BBmisc)#for normalize
+
+players_summary = odi %>% group_by(Player) %>% summarise(
+  matches = n(),
+  total_runs=sum(Runs, na.rm=T),
+  avg_runs=mean(Runs, na.rm=T),
+  centuries=sum(century, na.rm=T),
+  ducks=sum(ducks, na.rm=T),
+  fifties=sum(fifties, na.rm=T),
+  above_150=sum(above_150, na.rm=T),
+  missed_centuries=sum(missed_centuries, na.rm=T)
+)
+View(players_summary)
+
+top_players <- players_summary %>% arrange(-total_runs) %>% select(-Player) %>% head(100)
+
+data_norm <- normalize(top_players,range=c(0,1),method = "range")
+```
+
+
+```{r}
+kmeans_model<- kmeans(data_norm,centers = 3)
+
+barplot(table(kmeans_model$cluster))
+
+kmeans_model$betweenss
+kmeans_model$withinss
+  kmeans_model$tot.withinss
+```
+
+```{r}
+library(ggplot2)
+dim(data_norm)
+data_norm$cluster = kmeans_model$cluster
+data_norm_2d = cmdscale(as.matrix(dist(data_norm %>% select(-cluster))))#for projecting 8D data into 2D
+data_norm_2d = as.data.frame(data_norm_2d)
+data_norm_2d$cluster = as.factor(data_norm$cluster)
+data_norm_2d %>% ggplot(aes(x = V1, y = V2, color = cluster)) + geom_point()
+ 
+```
+Hcluster
+```{r}
+hclust_odi = hclust(dist(data_norm))
+plot(hclust_odi)
+```
+
+```{r}
+
+data_norm$cluster = cutree(hclust_odi,k=4)
+data_norm_2d = cmdscale(as.matrix(dist(data_norm %>% select(-cluster))))#for projecting 8D data into 2D
+data_norm_2d = as.data.frame(data_norm_2d)
+data_norm_2d$cluster = as.factor(data_norm$cluster)
+data_norm_2d %>% ggplot(aes(x = V1, y = V2, color = cluster)) + geom_point()
+
+
+
+max.col()
+```
+

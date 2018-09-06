@@ -1,0 +1,122 @@
+---
+title: "Time value of money"
+author: "Suraj Shiwal"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+#Future value calculation
+##(Interest rate is in percentage)
+```{r}
+
+fv <- function(pv,rate,n)
+{
+  future_value <- pv*(1+rate/100)^n
+  return(future_value)
+}
+
+pv=25000
+rate=12
+year=10
+#Rate in percentage
+fv(pv,rate,year)
+```
+#Doubling Money
+```{r}
+
+interest_rate=12
+
+doubling<- function(ir)
+{
+  cat(paste0("By Rule of 72:",72/ir),paste0("By Rule of 69:",0.35+(69/ir)),sep = "\n")
+}
+doubling(interest_rate)
+```
+#Future Value Annuity
+```{r}
+fva <- function(pv,rate,n)
+{
+  pv*(((1+rate/100)^n)-1)/(rate/100)
+}
+
+present_value <- 100
+interest_rate <- 5
+years <- 3
+
+cat("FVA:",fva(present_value,interest_rate,years),"\n")
+
+fvad <- function(pv,rate,n)
+{
+  (pv*(((1+rate/100)^n)-1)/(rate/100))*(1+rate/100)
+}
+cat("FVAD:",fvad(present_value,interest_rate,years))
+
+```
+#Present Value Annuity
+```{r}
+
+pva <- function(anuuity,rate,n)
+{
+  anuuity*(1-(1/(1+rate/100)))/(rate/100)
+}
+
+annuity <- 40000
+interest <-8 
+years <- 5  
+
+cat("PVA:",pva(annuity,interest,years),"\n")
+
+pvad <- function(anuuity,rate,n)
+{
+  (anuuity*(1-(1/(1+rate/100)))/(rate/100))*(1+rate/100)
+}
+cat("PVAD:",pvad(annuity,interest,years))
+```
+#Preasent Value of perpetuity
+```{r}
+PVAInf <- function(annuity,rate)
+{
+  annuity/(rate/100)
+}
+
+annuity <- 30000
+interest <- 12
+PVAInf(annuity,interest)
+```
+
+#Perpetuity Growth
+```{r}
+perpg=function(d,r,g){
+perpgr=d/(r/100-g/100)
+perpgr
+}
+
+d <- 10000 
+r <- 8
+g <- 3
+
+perpg(d,r,g)
+
+```
+
+#Gratuity
+```{r}
+gratuity=function(a,r,g,n){
+    grat=a*(1+g/100)*(1-((1+g/100)^n)/((1+r/100)^n) )/(r/100-g/100)
+    grat
+}
+
+annuity <- 20000
+interest <- 12
+growth_rate <- 5
+years <- 10
+
+gratuity(annuity,interest,growth_rate,years)
+```
+

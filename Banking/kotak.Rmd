@@ -1,0 +1,28 @@
+---
+title: "banking"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(readxl)
+setwd("E:/Banking")
+```
+
+```{r}
+kotak<- read_xlsx("FR_AnnualLatest_Announced.xlsx",sheet = 1,col_names = T)
+kotak<- data.frame(t(kotak),stringsAsFactors = F)
+kotak_profit <- read_xlsx("FR_AnnualLatest_Announced.xlsx",sheet=2,col_names = T)
+names(kotak) <- kotak[1,]
+kotak <- kotak[-1,]
+kotak_profit<- data.frame(t(as.matrix(kotak_profit)),stringsAsFactors = F,check.names = F)
+colnames(kotak_profit) <- as.character(kotak_profit[1,])
+kotak_profit <- kotak_profit[-1,]
+
+total_kotak <- cbind(kotak,kotak_profit)
+
+#curr_ratio <- 
+
+```
+
